@@ -33,12 +33,13 @@ final class MovieQuizViewController: UIViewController {
     private func showAnswerResult(isCorrect: Bool, sender:UIButton) {
         sender.isUserInteractionEnabled = false
         imageView.layer.masksToBounds = true // даём разрешение на рисование рамки
-        imageView.layer.borderWidth = 1 // толщина рамки
-        imageView.layer.borderColor = isCorrect ? UIColor.green.cgColor:UIColor.red.cgColor // делаем рамку белой
-        imageView.layer.cornerRadius = 6 // радиус скругления углов рамки
+        imageView.layer.borderWidth = 8 // толщина рамки
+        imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor:UIColor.ypRed.cgColor // делаем рамку белой
+        imageView.layer.cornerRadius = 20 // радиус скругления углов рамки
         correctAnswers += isCorrect ? 1:0
         // запускаем задачу через 1 секунду c помощью диспетчера задач
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.imageView.layer.borderWidth = 0 // толщина рамки
             // код, который мы хотим вызвать через 1 секунду
             self.showNextQuestionOrResults()
             sender.isUserInteractionEnabled = true
@@ -117,7 +118,7 @@ final class MovieQuizViewController: UIViewController {
             // идём в состояние "Результат квиза"
             let resultModel = QuizResultsViewModel(title: "Этот раунд окончен!",
                                                    text: "Ваш результат: \(correctAnswers)/\(questions.count)",
-                                              buttonText: "Начать заново")
+                                              buttonText: "Сыграть ещё раз")
             showResult(quiz: resultModel)
         } else { // 2
             currentQuestionIndex += 1
