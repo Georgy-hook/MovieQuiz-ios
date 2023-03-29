@@ -1,9 +1,152 @@
 import UIKit
 
 final class MovieQuizViewController: UIViewController {
+    
+    
+    @IBOutlet private weak var textLabel: UILabel!
+    @IBOutlet private weak var imageView: UIImageView!
+    @IBOutlet private weak var counterLabel: UILabel!
+    // переменная с индексом текущего вопроса, начальное значение 0
+    // (по этому индексу будем искать вопрос в массиве, где индекс первого элемента 0, а не 1)
+    private var currentQuestionIndex = 0
+    // переменная со счётчиком правильных ответов, начальное значение закономерно 0
+    private var correctAnswers = 0
+    
+    
+    // массив вопросов
+    private let questions: [QuizQuestion] = [
+        QuizQuestion(image: "The Godfather", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
+        QuizQuestion(image: "The Dark Knight", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
+        QuizQuestion(image: "Kill Bill", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
+        QuizQuestion(image: "The Avengers", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
+        QuizQuestion(image: "Deadpool", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
+        QuizQuestion(image: "The Green Knight", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: true),
+        QuizQuestion(image: "Old", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
+        QuizQuestion(image: "The Ice Age Adventures of Buck Wild", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
+        QuizQuestion(image: "Tesla", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false),
+        QuizQuestion(image: "Vivarium", text: "Рейтинг этого фильма больше чем 6?", correctAnswer: false)
+    ]
+    
+    // берём текущий вопрос из массива вопросов по индексу текущего вопроса
+    // приватный метод, который меняет цвет рамки
+    // принимает на вход булевое значение и ничего не возвращает
+    private func showAnswerResult(isCorrect: Bool, sender:UIButton) {
+        sender.isUserInteractionEnabled = false
+        imageView.layer.masksToBounds = true // даём разрешение на рисование рамки
+        imageView.layer.borderWidth = 1 // толщина рамки
+        imageView.layer.borderColor = isCorrect ? UIColor.green.cgColor:UIColor.red.cgColor // делаем рамку белой
+        imageView.layer.cornerRadius = 6 // радиус скругления углов рамки
+        correctAnswers += isCorrect ? 1:0
+        // запускаем задачу через 1 секунду c помощью диспетчера задач
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            // код, который мы хотим вызвать через 1 секунду
+            self.showNextQuestionOrResults()
+            sender.isUserInteractionEnabled = true
+        }
+    }
+    
+    struct QuizQuestion {
+        // строка с названием фильма,
+        // совпадает с названием картинки афиши фильма в Assets
+        let image: String
+        // строка с вопросом о рейтинге фильма
+        let text: String
+        // булевое значение (true, false), правильный ответ на вопрос
+        let correctAnswer: Bool
+    }
+    
+    // вью модель для состояния "Вопрос показан"
+    struct QuizStepViewModel {
+        // картинка с афишей фильма с типом UIImage
+        let image: UIImage
+        // вопрос о рейтинге квиза
+        let question: String
+        // строка с порядковым номером этого вопроса (ex. "1/10")
+        let questionNumber: String
+    }
+    // для состояния "Результат квиза"
+    struct QuizResultsViewModel {
+      // строка с заголовком алерта
+      let title: String
+      // строка с текстом о количестве набранных очков
+      let text: String
+      // текст для кнопки алерта
+      let buttonText: String
+    }
+    // приватный метод для показа результатов раунда квиза
+    // принимает вью модель QuizResultsViewModel и ничего не возвращает
+    private func showResult(quiz result: QuizResultsViewModel) {
+        // попробуйте написать код создания и показа алерта с результатами
+        let alert = UIAlertController(
+            title: result.title,
+            message: result.text,
+            preferredStyle: .alert)
+        
+        let action = UIAlertAction(title: result.buttonText, style: .default) { _ in
+            self.currentQuestionIndex = 0
+            // сбрасываем переменную с количеством правильных ответов
+              self.correctAnswers = 0
+            // заново показываем первый вопрос
+            let firstQuestion = self.questions[self.currentQuestionIndex]
+            let viewModel = self.convert(model: firstQuestion)
+            self.show(quiz: viewModel)
+        }
+        
+        alert.addAction(action)
+        
+        self.present(alert, animated: true, completion: nil)
+    }
+    // метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
+    private func convert(model: QuizQuestion) -> QuizStepViewModel {
+        // Попробуйте написать код конвертации самостоятельно
+        return QuizStepViewModel(image: UIImage(named: model.image) ?? UIImage(), question: model.text, questionNumber: "\(currentQuestionIndex + 1)/\(questions.count)")
+    }
+    
+    // приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
+    private func show(quiz step: QuizStepViewModel) {
+        textLabel.text = step.question
+        imageView.image = step.image
+        counterLabel.text = step.questionNumber
+        // попробуйте написать код показа на экран самостоятельно
+    }
+    
+    // приватный метод, который содержит логику перехода в один из сценариев
+    // метод ничего не принимает и ничего не возвращает
+    private func showNextQuestionOrResults() {
+        if currentQuestionIndex == questions.count - 1 { // 1
+            // идём в состояние "Результат квиза"
+            let resultModel = QuizResultsViewModel(title: "Этот раунд окончен!",
+                                                   text: "Ваш результат: \(correctAnswers)/\(questions.count)",
+                                              buttonText: "Начать заново")
+            showResult(quiz: resultModel)
+        } else { // 2
+            currentQuestionIndex += 1
+            // идём в состояние "Вопрос показан"
+            let nextQuestion = questions[currentQuestionIndex]
+            let viewModel = convert(model: nextQuestion)
+            
+            show(quiz: viewModel)
+        }
+    }
+    
+
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        let currentQuestion = questions[currentQuestionIndex]
+        show(quiz:convert(model: currentQuestion))
+        
+        
+    }
+    @IBAction private func noButtonClicked(_ sender: UIButton) {
+        let answer = false
+        showAnswerResult(isCorrect: answer == questions[currentQuestionIndex].correctAnswer, sender: sender)
+       
+    }
+    
+    @IBAction private func yesButtonClicked(_ sender: UIButton) {
+        let answer = true
+        showAnswerResult(isCorrect: answer == questions[currentQuestionIndex].correctAnswer,sender: sender)
     }
 }
 
