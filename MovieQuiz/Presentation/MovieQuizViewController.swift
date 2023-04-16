@@ -14,7 +14,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
     private var alertPresentor: AlertPresentorProtocol?
-
+    let statisticService = StatisticServiceImplementation()
     // MARK: - Private functions
     // берём текущий вопрос из массива вопросов по индексу текущего вопроса
     // приватный метод, который меняет цвет рамки
@@ -55,8 +55,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     private func showNextQuestionOrResults() {
         if currentQuestionIndex == questionsAmount - 1 { // 1
             // идём в состояние "Результат квиза"
+            statisticService.store(correct: correctAnswers, total: questionsAmount)
             let resultModel = AlertModel(title: "Этот раунд окончен!",
-                                         message: "Ваш результат: \(correctAnswers)/\(questionsAmount)",
+                                         message: "Ваш результат: \(correctAnswers)/\(questionsAmount)\n Количество сыграных квизов: \(statisticService.gamesCount)\n Рекорд:\(statisticService.bestGame.formateToString())\n Средняя точность: \(statisticService.totalAccuracy.get())",
                                               buttonText: "Сыграть ещё раз")
             alertPresentor?.showAlert(on: self, with: resultModel)
         } else { // 2
@@ -71,6 +72,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+
         
         questionFactory = QuestionFactory(delegate: self)
         
