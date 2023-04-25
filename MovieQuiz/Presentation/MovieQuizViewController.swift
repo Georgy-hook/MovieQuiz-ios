@@ -1,9 +1,13 @@
 import UIKit
 
 final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,AlertPresentorDelegate {
+    //MARK: - Outlets
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var counterLabel: UILabel!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    
+    //MARK: - Variables
     // переменная с индексом текущего вопроса, начальное значение 0
     // (по этому индексу будем искать вопрос в массиве, где индекс первого элемента 0, а не 1)
     private var currentQuestionIndex = 0
@@ -14,7 +18,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
     private var alertPresentor: AlertPresentorProtocol?
-    let statisticService = StatisticServiceImplementation()
+    let statisticService:StatisticService = StatisticServiceImplementation()
+    
+    //MARK: - View customization
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        .lightContent
+    }
+    
     // MARK: - Private functions
     // берём текущий вопрос из массива вопросов по индексу текущего вопроса
     // приватный метод, который меняет цвет рамки
@@ -39,7 +49,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     // метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         // Попробуйте написать код конвертации самостоятельно
-        return QuizStepViewModel(image: UIImage(named: model.image) ?? UIImage(), question: model.text, questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
+        return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
+                                 question: model.text,
+                                 questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
     
     // приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
@@ -57,8 +69,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
             // идём в состояние "Результат квиза"
             statisticService.store(correct: correctAnswers, total: questionsAmount)
             let resultModel = AlertModel(title: "Этот раунд окончен!",
-                                         message: "Ваш результат: \(correctAnswers)/\(questionsAmount)\n Количество сыграных квизов: \(statisticService.gamesCount)\n Рекорд:\(statisticService.bestGame.formateToString())\n Средняя точность: \(statisticService.totalAccuracy.get())",
-                                              buttonText: "Сыграть ещё раз")
+                                         message: """
+                                                Ваш результат: \(correctAnswers)/\(questionsAmount)\n
+                                                Количество сыграных квизов: \(statisticService.gamesCount)\n
+                                                Рекорд:\(statisticService.bestGame.formatToString())\n
+                                                Средняя точность:\(statisticService.totalAccuracy.formatToString())
+                                                """,
+                                         buttonText: "Сыграть ещё раз")
             alertPresentor?.showAlert(on: self, with: resultModel)
         } else { // 2
             currentQuestionIndex += 1
@@ -68,22 +85,22 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
         }
     }
     
-
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
-
         
-        questionFactory = QuestionFactory(delegate: self)
         
-        questionFactory?.requestNextQuestion()
+        questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
+        
+        questionFactory?.loadData()
+        showLoadingIndicator()
         alertPresentor = AlertPresenter(delegate: self)
         
     }
     
     // MARK: - QuestionFactoryDelegate
-
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question = question else {
             return
@@ -92,8 +109,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
         currentQuestion = question
         let viewModel = convert(model: question)
         DispatchQueue.main.async { [weak self] in
-               self?.show(quiz: viewModel)
-           }
+            self?.show(quiz: viewModel)
+        }
     }
     
     // MARK: - AlertPresentorDelegate
@@ -112,7 +129,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
             return
         }
         showAnswerResult(isCorrect: answer == currentQuestion.correctAnswer, sender: sender)
-       
+        
     }
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
@@ -121,5 +138,27 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
             return
         }
         showAnswerResult(isCorrect: answer == currentQuestion.correctAnswer,sender: sender)
+    }
+    
+    // MARK: - Activity indicator
+    private func showLoadingIndicator() {
+        activityIndicator.isHidden = false // говорим, что индикатор загрузки не скрыт
+        activityIndicator.startAnimating() // включаем анимацию
+    }
+    
+    // MARK: - Load Data
+    private func showNetworkError(message: String) {
+        let errorAlert = AlertModel(title: "Ошибка", message: message, buttonText: "Попробовать еще раз")
+        alertPresentor?.showAlert(on: self, with: errorAlert)
+        activityIndicator.isHidden = true // скрываем индикатор загрузки
+        
+        // создайте и покажите алерт
+    }
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription) // возьмём в качестве сообщения описание ошибки
+    }
+    func didLoadDataFromServer() {
+        activityIndicator.isHidden = true // скрываем индикатор загрузки
+        questionFactory?.requestNextQuestion()
     }
 }
