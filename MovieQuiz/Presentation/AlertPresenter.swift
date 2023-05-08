@@ -19,7 +19,7 @@ final class AlertPresenter: AlertPresentorProtocol{
             title: model.title,
             message: model.message,
             preferredStyle: .alert)
-        
+        alert.view.accessibilityIdentifier = "Game Results"
         let action = UIAlertAction(title: model.buttonText, style: .default) { [weak self] _ in
             guard let self = self else{
                 return
