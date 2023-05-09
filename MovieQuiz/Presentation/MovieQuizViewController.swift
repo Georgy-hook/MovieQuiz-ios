@@ -1,6 +1,10 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,AlertPresentorDelegate {
+final class MovieQuizViewController: UIViewController,AlertPresentorDelegate, QuestionFactoryDelegate {
+    func didReceiveNextQuestion(question: QuizQuestion?) {
+        presenter.didReceiveNextQuestion(question: question)
+    }
+    
     //MARK: - Outlets
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
@@ -8,11 +12,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
     //MARK: - Variables
-    // переменная со счётчиком правильных ответов, начальное значение закономерно 0
-    private var correctAnswers = 0
+    
     private let presenter = MovieQuizPresenter()
     private var questionFactory: QuestionFactoryProtocol?
-    private var currentQuestion: QuizQuestion?
     private var alertPresentor: AlertPresentorProtocol?
     let statisticService:StatisticService = StatisticServiceImplementation()
     
@@ -31,13 +33,13 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
         imageView.layer.borderWidth = 8 // толщина рамки
         imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor:UIColor.ypRed.cgColor // делаем рамку белой
         imageView.layer.cornerRadius = 20 // радиус скругления углов рамки
-        correctAnswers += isCorrect ? 1:0
+         presenter.correctAnswers += isCorrect ? 1:0
         // запускаем задачу через 1 секунду c помощью диспетчера задач
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else{return}
             self.imageView.layer.borderWidth = 0 // толщина рамки
             // код, который мы хотим вызвать через 1 секунду
-            self.showNextQuestionOrResults()
+            presenter.showNextQuestionOrResults()
             view.isUserInteractionEnabled = true
         }
     }
@@ -46,7 +48,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
  
     
     // приватный метод вывода на экран вопроса, который принимает на вход вью модель вопроса и ничего не возвращает
-    private func show(quiz step: QuizStepViewModel) {
+     func show(quiz step: QuizStepViewModel) {
         textLabel.text = step.question
         imageView.image = step.image
         counterLabel.text = step.questionNumber
@@ -55,25 +57,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     
     // приватный метод, который содержит логику перехода в один из сценариев
     // метод ничего не принимает и ничего не возвращает
-    private func showNextQuestionOrResults() {
-        if presenter.isLastQuestion(){ // 1
-            // идём в состояние "Результат квиза"
-            statisticService.store(correct: correctAnswers, total: presenter.questionsAmount)
-            let resultModel = AlertModel(title: "Этот раунд окончен!",
-                                         message: """
-                                                Ваш результат: \(correctAnswers)/\(presenter.questionsAmount)\n
-                                                Количество сыграных квизов: \(statisticService.gamesCount)\n
-                                                Рекорд:\(statisticService.bestGame.formatToString())\n
-                                                Средняя точность:\(statisticService.totalAccuracy.formatToString())
-                                                """,
-                                         buttonText: "Сыграть ещё раз")
+     func showAlert(with resultModel: AlertModel) {
             alertPresentor?.showAlert(on: self, with: resultModel)
-        } else { // 2
-            presenter.switchToNextQuestion()
-            // идём в состояние "Вопрос показан"
-            questionFactory?.requestNextQuestion()
-            
-        }
     }
     
     
@@ -84,7 +69,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
         presenter.viewController = self
         
         questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
-        
+        self.presenter.questionFactory = questionFactory
         questionFactory?.loadData()
         showLoadingIndicator()
         alertPresentor = AlertPresenter(delegate: self)
@@ -92,36 +77,26 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     }
     
     // MARK: - QuestionFactoryDelegate
-    func didReceiveNextQuestion(question: QuizQuestion?) {
-        guard let question = question else {
-            return
-        }
-        
-        currentQuestion = question
-        let viewModel = presenter.convert(model: question)
-        DispatchQueue.main.async { [weak self] in
-            self?.show(quiz: viewModel)
-        }
-    }
+   
     
     // MARK: - AlertPresentorDelegate
     func finishShowAlert() {
         presenter.resetQuestionIndex()
         // сбрасываем переменную с количеством правильных ответов
-        self.correctAnswers = 0
+        //self.correctAnswers = 0
         // заново показываем первый вопрос
         self.questionFactory?.requestNextQuestion()
     }
     
     // MARK: - Actions
     @IBAction func noButtonClicked(_ sender: UIButton) {
-        presenter.currentQuestion = currentQuestion
+       // presenter.currentQuestion = currentQuestion
         presenter.noButtonClicked()
         
     }
     
     @IBAction func yesButtonClicked(_ sender: UIButton) {
-        presenter.currentQuestion = currentQuestion
+        //presenter.currentQuestion = currentQuestion
         presenter.yesButtonClicked()
     }
     
@@ -132,7 +107,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate,A
     }
     
     // MARK: - Load Data
-    private func showNetworkError(message: String) {
+     func showNetworkError(message: String) {
         let errorAlert = AlertModel(title: "Ошибка", message: message, buttonText: "Попробовать еще раз")
         alertPresentor?.showAlert(on: self, with: errorAlert)
         activityIndicator.isHidden = true // скрываем индикатор загрузки
