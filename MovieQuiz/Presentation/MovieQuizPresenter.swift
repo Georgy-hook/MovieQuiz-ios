@@ -6,65 +6,53 @@
 //
 
 import UIKit
-final class MovieQuizPresenter:QuestionFactoryDelegate{
-    func didLoadDataFromServer() {
-        print("error")
-    }
+final class MovieQuizPresenter{
+    //MARK: - Init
+    private var questionFactory: QuestionFactoryProtocol?
+    private weak var viewController: MovieQuizViewController?
+    private var statisticService:StatisticService?
     
-    func didFailToLoadData(with error: Error) {
-        print("error")
+    init(viewController: MovieQuizViewController) {
+        self.viewController = viewController
+        statisticService = StatisticServiceImplementation()
+        questionFactory = QuestionFactory(delegate: self, moviesLoader: MoviesLoader())
+        questionFactory?.loadData()
+        viewController.showLoadingIndicator()
     }
     
     //MARK: - Variables
-    // переменная с индексом текущего вопроса, начальное значение 0
+    private var currentQuestion: QuizQuestion?
+    private let questionsAmount: Int = 10
+    
+    //MARK: - Quiz state methods
+    private var correctAnswers = 0
     private var currentQuestionIndex = 0
-    var currentQuestion: QuizQuestion?
-    let questionsAmount: Int = 10
-    let statisticService:StatisticService = StatisticServiceImplementation()
-     var questionFactory: QuestionFactoryProtocol?
-    // переменная со счётчиком правильных ответов, начальное значение закономерно 0
-     var correctAnswers = 0
     
-    weak var viewController:MovieQuizViewController?
-    
-    func isLastQuestion() -> Bool {
+    private func isLastQuestion() -> Bool {
         currentQuestionIndex == questionsAmount - 1
     }
     
-    func resetQuestionIndex() {
+    func restartGame() {
+        questionFactory?.requestNextQuestion()
         currentQuestionIndex = 0
         correctAnswers = 0
     }
     
-    func switchToNextQuestion() {
+    private func switchToNextQuestion() {
         currentQuestionIndex += 1
     }
-    //MARK: - Methods
-    // метод конвертации, который принимает моковый вопрос и возвращает вью модель для экрана вопроса
-    func convert(model: QuizQuestion) -> QuizStepViewModel {
+    
+    //MARK: - Quiz lifecycle methods
+    private func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(image: UIImage(data: model.image) ?? UIImage(),
                                  question: model.text,
                                  questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
     }
     
-    func didReceiveNextQuestion(question: QuizQuestion?) {
-        guard let question = question else {
-            return
-        }
-
-        currentQuestion = question
-        let viewModel = convert(model: question)
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else{
-                return
-            }
-            self.viewController?.show(quiz: viewModel)
-        }
-    }
-    
-     func showNextQuestionOrResults() {
+    private func showNextQuestionOrResults() {
         if isLastQuestion(){ // 1
             // идём в состояние "Результат квиза"
+            guard let statisticService = statisticService else {return}
             statisticService.store(correct: correctAnswers, total: questionsAmount)
             let resultModel = AlertModel(title: "Этот раунд окончен!",
                                          message: """
@@ -82,21 +70,62 @@ final class MovieQuizPresenter:QuestionFactoryDelegate{
             
         }
     }
+    
+    private func showAnswerResult(isCorrect: Bool) {
+        // запускаем задачу через 1 секунду c помощью диспетчера задач
+        viewController?.highlightImageBorder(isCorrectAnswer: isCorrect)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else{return}
+            viewController?.hideImageBorder()
+            showNextQuestionOrResults()
+        }
+    }
+    
     //MARK: - ButtonsClicked
     private func didAnswer(isYes:Bool){
         let answer = isYes
         guard let currentQuestion = currentQuestion else {
             return
         }
-        viewController?.showAnswerResult(isCorrect: answer == currentQuestion.correctAnswer)
+        let isCorrect = answer == currentQuestion.correctAnswer
+        showAnswerResult(isCorrect: isCorrect)
+        correctAnswers += isCorrect ? 1:0
     }
+    
     func yesButtonClicked() {
         didAnswer(isYes: true)
     }
+    
     func noButtonClicked() {
         didAnswer(isYes: false)
         
     }
+}
+
+// MARK: - QuestionFactoryDelegate
+extension MovieQuizPresenter:QuestionFactoryDelegate{
+    func didReceiveNextQuestion(question: QuizQuestion?) {
+        guard let question = question else {
+            return
+        }
+        
+        currentQuestion = question
+        let viewModel = convert(model: question)
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else{
+                return
+            }
+            self.viewController?.show(quiz: viewModel)
+        }
+    }
     
+    func didLoadDataFromServer() {
+        viewController?.hideLoadingIndicator()
+        questionFactory?.requestNextQuestion()
+    }
     
+    func didFailToLoadData(with error: Error) {
+        let message = error.localizedDescription
+        viewController?.showNetworkError(message: message)
+    }
 }
