@@ -1,5 +1,5 @@
 import UIKit
-final class MovieQuizViewController: UIViewController,AlertPresentorDelegate {
+final class MovieQuizViewController: UIViewController,AlertPresentorDelegate,MovieQuizViewControllerProtocol {
     //MARK: - Outlets
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
