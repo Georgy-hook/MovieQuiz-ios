@@ -6,7 +6,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        print("Hello for new Branch")
+        var preferredStatusBarStyle: UIStatusBarStyle {
+            .lightContent
+        }
         return true
     }
 

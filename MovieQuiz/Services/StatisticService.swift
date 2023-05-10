@@ -17,7 +17,7 @@ struct GameRecord: Codable {
     let correct: Int
     let total: Int
     let date: Date
-    func formateToString() -> String{
+    func formatToString() -> String{
         return "\(self.correct)/\(self.total) (\(self.date.dateTimeString))"
     }
 }
@@ -25,7 +25,7 @@ struct Accuracy: Codable{
     var totalCorrect: Int //Общее число правильных ответов за все время работы приложения
     var totalQuestions: Int // Общее число вопросов заданных пользователю
     
-    func get() -> String{
+    func formatToString() -> String{
         let correct = Double(self.totalCorrect)
         let questions = Double(self.totalQuestions)
         let totalAccuracy = (correct/questions)*100
@@ -41,7 +41,7 @@ final class StatisticServiceImplementation: StatisticService {
     var totalAccuracy: Accuracy{
         get{
             guard let data = userDefaults.data(forKey: Keys.totalAccuracy.rawValue),
-            let record = try? JSONDecoder().decode(Accuracy.self, from: data) else {
+                  let record = try? JSONDecoder().decode(Accuracy.self, from: data) else {
                 return .init(totalCorrect: 0, totalQuestions: 0)
             }
             
@@ -70,7 +70,7 @@ final class StatisticServiceImplementation: StatisticService {
     var bestGame: GameRecord {
         get {
             guard let data = userDefaults.data(forKey: Keys.bestGame.rawValue),
-            let record = try? JSONDecoder().decode(GameRecord.self, from: data) else {
+                  let record = try? JSONDecoder().decode(GameRecord.self, from: data) else {
                 return .init(correct: 0, total: 0, date: Date())
             }
             
@@ -95,5 +95,5 @@ final class StatisticServiceImplementation: StatisticService {
             bestGame = GameRecord(correct: count, total:amount , date: Date())
         }
     }
-
+    
 }
