@@ -4,7 +4,7 @@ final class MovieQuizViewController: UIViewController,AlertPresentorDelegate,Mov
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var counterLabel: UILabel!
-    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     //MARK: - Variables
     private var presenter: MovieQuizPresenter?
