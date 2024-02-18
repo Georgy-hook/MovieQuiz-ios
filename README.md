@@ -3,14 +3,11 @@
 MovieQuiz - Одностраничное приложение с квизами о фильмах из топ-250 рейтинга и самых популярных фильмов IMDb. Пользователь приложения последовательно отвечает на вопросы о рейтинге фильма. По итогам каждого раунда игры показывается статистика о количестве правильных ответов и лучших результатах пользователя. Цель игры — правильно ответить на все 10 вопросов раунда.
 
 ## **Скриншоты**
-Главный экран:
 <img width="419" alt="MainGame Screenshot - 2024-02-18" src="https://github.com/Georgy-hook/MovieQuiz-ios/assets/78609985/1762499b-9552-4ba5-a135-de5c242feae1">
 
-Экран статистики:
 <img width="430" alt="Statistic Screenshot - 2024-02-18" src="https://github.com/Georgy-hook/MovieQuiz-ios/assets/78609985/92520814-4ae6-4819-9dcd-afc64c9abbb0">
 
-Экран сетевой ошибки:
-![Error Screenshot - 2024-02-18](https://github.com/Georgy-hook/MovieQuiz-ios/assets/78609985/751241d2-d13c-4e78-a8a6-8de24872e1ad)
+<img width="430" alt="Error Screenshot - 2024-02-18" src="https://github.com/Georgy-hook/MovieQuiz-ios/assets/78609985/751241d2-d13c-4e78-a8a6-8de24872e1ad">
 
 ## **Инструкция**
 Для запуска приложения требуется валидный API ключ IMDB который необходимо вставить в переменную mostPopularMoviesUrl структуры MoviesLoader
